@@ -45,6 +45,7 @@
       setCoordinator(coordinator)
     }
 
+    @MainActor
     func setLayoutCollection(_ layoutCollection: any TextLayoutCollection) {
       guard !layoutCollection.isEqual(to: self.layoutCollection) else {
         return
@@ -60,11 +61,16 @@
         return
       }
 
-      // Try to reconcile the selected text range
-      self.selectedRange = layoutCollection.reconcileRange(
+      // Try to reconcile the selected text range. This runs while SwiftUI evaluates the
+      // overlay, so defer the observable change until the update has finished.
+      let reconciledRange = layoutCollection.reconcileRange(
         selectedRange,
         from: oldLayoutCollection
       )
+      Task { @MainActor [weak self] in
+        guard let self, self.selectedRange == selectedRange else { return }
+        self.selectedRange = reconciledRange
+      }
     }
 
     func setCoordinator(_ coordinator: TextSelectionCoordinator?) {

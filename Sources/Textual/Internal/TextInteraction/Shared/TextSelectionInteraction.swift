@@ -24,10 +24,13 @@ struct TextSelectionInteraction: ViewModifier {
       if textSelection.allowsSelection {
         content
           .overlayTextLayoutCollection { layoutCollection in
+            // `onChange` can miss the update that replaces the placeholder layout with the
+            // real text, leaving the model empty until something else (such as scrolling)
+            // re-evaluates this overlay. Hand every new collection to the model directly.
+            let _ = model.setLayoutCollection(layoutCollection)
             Color.clear
               .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) {
                 model.setCoordinator(coordinator)
-                model.setLayoutCollection(layoutCollection)
               }
           }
           .modifier(PlatformTextSelectionInteraction(model: model))
