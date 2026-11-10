@@ -86,6 +86,17 @@
   }
 
   extension TextSelectionModel {
+    // UIKit and AppKit can hand back positions created before the layout collection was
+    // rebuilt (for example, the edit menu is shown on a timer after a long press). Indexing
+    // the new layouts with such a position traps, so treat it as invalid instead.
+    private func isValid(_ position: TextPosition) -> Bool {
+      layoutCollection.contains(position)
+    }
+
+    private func isValid(_ range: TextRange) -> Bool {
+      isValid(range.start) && isValid(range.end)
+    }
+
     var hasText: Bool {
       layoutCollection.stringLength > 0
     }
@@ -99,7 +110,8 @@
     }
 
     func attributedText(in range: TextRange) -> NSAttributedString {
-      layoutCollection.attributedText(in: range)
+      guard isValid(range) else { return NSAttributedString() }
+      return layoutCollection.attributedText(in: range)
     }
 
     func text(in range: TextRange) -> String {
@@ -107,27 +119,33 @@
     }
 
     func position(from position: TextPosition, offset: Int) -> TextPosition? {
-      layoutCollection.position(from: position, offset: offset)
+      guard isValid(position) else { return nil }
+      return layoutCollection.position(from: position, offset: offset)
     }
 
     func offset(from: TextPosition, to: TextPosition) -> Int {
-      layoutCollection.characterIndex(at: to) - layoutCollection.characterIndex(at: from)
+      guard isValid(from), isValid(to) else { return 0 }
+      return layoutCollection.characterIndex(at: to) - layoutCollection.characterIndex(at: from)
     }
 
     func firstRect(for range: TextRange) -> CGRect {
-      layoutCollection.firstRect(for: range)
+      guard isValid(range) else { return .zero }
+      return layoutCollection.firstRect(for: range)
     }
 
     func caretRect(for position: TextPosition) -> CGRect {
-      layoutCollection.caretRect(for: position)
+      guard isValid(position) else { return .zero }
+      return layoutCollection.caretRect(for: position)
     }
 
     func selectionRects(for range: TextRange) -> [TextSelectionRect] {
-      layoutCollection.selectionRects(for: range)
+      guard isValid(range) else { return [] }
+      return layoutCollection.selectionRects(for: range)
     }
 
     func selectionRects(for range: TextRange, layout: Text.Layout) -> [TextSelectionRect] {
-      layoutCollection.selectionRects(for: range, layout: layout)
+      guard isValid(range) else { return [] }
+      return layoutCollection.selectionRects(for: range, layout: layout)
     }
 
     func closestPosition(to point: CGPoint) -> TextPosition? {
@@ -142,15 +160,18 @@
     }
 
     func isPositionAtBlockBoundary(_ position: TextPosition) -> Bool {
-      layoutCollection.isPositionAtBlockBoundary(position)
+      guard isValid(position) else { return false }
+      return layoutCollection.isPositionAtBlockBoundary(position)
     }
 
     func positionAbove(_ position: TextPosition, anchor: TextPosition) -> TextPosition? {
-      layoutCollection.positionAbove(position, anchor: anchor)
+      guard isValid(position), isValid(anchor) else { return nil }
+      return layoutCollection.positionAbove(position, anchor: anchor)
     }
 
     func positionBelow(_ position: TextPosition, anchor: TextPosition) -> TextPosition? {
-      layoutCollection.positionBelow(position, anchor: anchor)
+      guard isValid(position), isValid(anchor) else { return nil }
+      return layoutCollection.positionBelow(position, anchor: anchor)
     }
 
     func characterRange(at point: CGPoint) -> TextRange? {
@@ -158,36 +179,42 @@
     }
 
     func blockStart(for position: TextPosition) -> TextPosition? {
-      layoutCollection.blockStart(for: position)
+      guard isValid(position) else { return nil }
+      return layoutCollection.blockStart(for: position)
     }
 
     func blockEnd(for position: TextPosition) -> TextPosition? {
-      layoutCollection.blockEnd(for: position)
+      guard isValid(position) else { return nil }
+      return layoutCollection.blockEnd(for: position)
     }
 
     func blockRange(for position: TextPosition) -> TextRange? {
-      layoutCollection.blockRange(for: position)
+      guard isValid(position) else { return nil }
+      return layoutCollection.blockRange(for: position)
     }
 
     @available(macOS 10.0, *)
     @available(iOS, unavailable)
     @available(visionOS, unavailable)
     func wordRange(for position: TextPosition) -> TextRange? {
-      layoutCollection.wordRange(for: position)
+      guard isValid(position) else { return nil }
+      return layoutCollection.wordRange(for: position)
     }
 
     @available(macOS 10.0, *)
     @available(iOS, unavailable)
     @available(visionOS, unavailable)
     func nextWord(from position: TextPosition) -> TextPosition? {
-      layoutCollection.nextWord(from: position)
+      guard isValid(position) else { return nil }
+      return layoutCollection.nextWord(from: position)
     }
 
     @available(macOS 10.0, *)
     @available(iOS, unavailable)
     @available(visionOS, unavailable)
     func previousWord(from position: TextPosition) -> TextPosition? {
-      layoutCollection.previousWord(from: position)
+      guard isValid(position) else { return nil }
+      return layoutCollection.previousWord(from: position)
     }
   }
 #endif

@@ -7,6 +7,29 @@
 
   struct TextSelectionModelTests {
     @Test
+    func stalePositionsDoNotTrap() throws {
+      // given: positions left over from a layout with more lines and layouts
+      let model = try TextSelectionModel(fixtureName: "two-paragraphs-bidi")
+      let staleLine = TextPosition(
+        indexPath: .init(runSlice: 0, run: 0, line: 9, layout: 0),
+        affinity: .upstream
+      )
+      let staleLayout = TextPosition(indexPath: .init(layout: 5), affinity: .downstream)
+      let stale = TextRange(from: model.startPosition, to: staleLine)
+
+      // when / then
+      #expect(model.offset(from: model.startPosition, to: staleLine) == 0)
+      #expect(model.offset(from: staleLayout, to: model.endPosition) == 0)
+      #expect(model.position(from: staleLine, offset: 1) == nil)
+      #expect(model.text(in: stale).isEmpty)
+      #expect(model.caretRect(for: staleLayout) == .zero)
+      #expect(model.firstRect(for: stale) == .zero)
+      #expect(model.selectionRects(for: stale).isEmpty)
+      #expect(model.blockRange(for: staleLine) == nil)
+      #expect(model.offset(from: model.startPosition, to: model.endPosition) > 0)
+    }
+
+    @Test
     func urlForPoint() throws {
       // given
       let model = try TextSelectionModel(fixtureName: "two-paragraphs-bidi")

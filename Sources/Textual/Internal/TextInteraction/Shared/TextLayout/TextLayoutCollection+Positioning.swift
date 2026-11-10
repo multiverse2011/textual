@@ -59,6 +59,17 @@
       return self.position(at: layout, localCharacterIndex: localTarget)
     }
 
+    /// Whether `position` points at an existing run slice in the current layouts.
+    func contains(_ position: TextPosition) -> Bool {
+      let indexPath = position.indexPath
+      guard layouts.indices.contains(indexPath.layout) else { return false }
+      let lines = layouts[indexPath.layout].lines
+      guard lines.indices.contains(indexPath.line) else { return false }
+      let runs = lines[indexPath.line].runs
+      guard runs.indices.contains(indexPath.run) else { return false }
+      return runs[indexPath.run].slices.indices.contains(indexPath.runSlice)
+    }
+
     func characterIndex(at position: TextPosition) -> Int {
       let base = layouts.prefix(position.indexPath.layout)
         .map(\.attributedString.length)
