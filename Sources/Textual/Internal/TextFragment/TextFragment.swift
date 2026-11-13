@@ -14,9 +14,12 @@ import SwiftUI
 // - AttachmentOverlay draws attachments at their run locations with selection-aware dimming
 // - TextLinkInteraction handles tap gestures on links
 //
-// These overlays use backgroundPreferenceValue and overlayPreferenceValue to access
-// Text.Layout and render in fragment-local coordinates. Fragment-level overlays enable
-// coordinate space isolation and keep scrollable regions interactive.
+// These overlays read the fragment's Text.Layout from a TextLayoutBox, which TextLayoutCapture
+// fills when the text is drawn, and render in fragment-local coordinates. They do not read
+// Text.LayoutKey, because SwiftUI resolves that again on every frame while the text scrolls
+// (AnchoredLayoutFallback still does, for the rare text whose drawn layout is offset).
+// The fragment also publishes its box through TextLayoutBoxKey so that the selection interaction
+// can build a TextLayoutCollection. Fragment-level overlays keep scrollable regions interactive.
 //
 // An ancestor view must define a named coordinate space (.textContainer) for the text
 // container. TextFragment uses onGeometryChange to observe the container size and rebuild
@@ -28,6 +31,7 @@ import SwiftUI
 struct TextFragment<Content: AttributedStringProtocol>: View {
   @Environment(\.textEnvironment) private var textEnvironment
   @State private var textBuilder: TextBuilder?
+  @State private var layoutBox = TextLayoutBox()
 
   private let content: Content
 
@@ -38,6 +42,7 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
   var body: some View {
     text
       .customAttribute(TextFragmentAttribute())
+      .textRenderer(TextLayoutCapture(box: layoutBox))
       .onGeometryChange(for: CGSize?.self, of: \.textContainerSize) { size in
         guard let size, let textBuilder else { return }
         textBuilder.sizeChanged(size, environment: textEnvironment)
@@ -45,9 +50,14 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
       .onChange(of: content, initial: true) { _, newValue in
         self.textBuilder = TextBuilder(newValue, environment: textEnvironment)
       }
-      .modifier(TextSelectionBackground())
-      .modifier(AttachmentOverlay(attachments: content.attachments()))
-      .modifier(TextLinkInteraction())
+      .modifier(AnchoredLayoutFallback(layoutBox: layoutBox))
+      .modifier(TextSelectionBackground(layoutBox: layoutBox))
+      .modifier(AttachmentOverlay(attachments: content.attachments(), layoutBox: layoutBox))
+      .modifier(TextLinkInteraction(layoutBox: layoutBox))
+      .onGeometryChange(for: CGPoint.self, of: { $0.frame(in: .textSelectionScope).origin }) {
+        layoutBox.origin = $0
+      }
+      .preference(key: TextLayoutBoxKey.self, value: [layoutBox])
   }
 
   private var text: Text {

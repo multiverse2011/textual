@@ -3,9 +3,10 @@ import SwiftUI
 // MARK: - Overview
 //
 // Table uses a two-pass layout system. The first pass renders cells which emit their bounds via
-// preferences. The second pass collects all cell bounds, transforms them from anchor coordinates
-// to geometry coordinates, and builds a `TableLayout` that the style uses to render overlays
-// (such as grid lines) and backgrounds with precise cell positions.
+// preferences, measured in the table's coordinate space (`.textTable`, set by `tableBackground`
+// and `tableOverlay`). The second pass collects all cell bounds and builds a `TableLayout` that
+// the style uses to render overlays (such as grid lines) and backgrounds with precise cell
+// positions.
 
 extension StructuredText {
   struct Table: View {

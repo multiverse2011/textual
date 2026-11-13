@@ -71,7 +71,7 @@ public struct Overflow<Content: View>: View {
             }
             // Make text selection local in scrollable regions
             .modifier(TextSelectionInteraction())
-            .transformPreference(Text.LayoutKey.self) { value in
+            .transformPreference(TextLayoutBoxKey.self) { value in
               value = []
             }
         }

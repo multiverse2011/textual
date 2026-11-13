@@ -5,7 +5,7 @@ import SwiftUI
 // `TextSelectionInteraction` manages the text selection model lifecycle for multiple `Text` fragments.
 //
 // Selection is opt-in through the `textSelection` environment value. When enabled, the modifier
-// observes text layout changes via `overlayTextLayoutCollection` and creates or updates a
+// observes the fragments' layouts via `overlayTextLayoutCollection` and creates or updates a
 // `TextSelectionModel`. The model is then passed to the platform-specific implementation
 // (`PlatformTextSelectionInteraction`), which presents the appropriate selection UI for macOS
 // or iOS. This separation keeps model management in shared code while platform interactions

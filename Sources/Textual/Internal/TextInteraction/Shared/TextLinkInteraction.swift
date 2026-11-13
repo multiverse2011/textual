@@ -4,30 +4,22 @@ import SwiftUI
 //
 // `TextLinkInteraction` adds lightweight link tapping to a `Text` fragment.
 //
-// SwiftUI resolves a `Text.Layout` for each fragment and publishes it through the `Text.LayoutKey`
-// preference. This modifier reads the anchored layout, converts tap locations to layout-local
-// coordinates, and looks for the first run whose typographic bounds contains the tap. When a run
-// has a `url`, the modifier invokes the environment’s `openURL` action.
+// The fragment's resolved `Text.Layout` comes from its `TextLayoutBox`. On a tap, this modifier
+// converts the location to layout coordinates and looks for the first run whose typographic
+// bounds contains it. When a run has a `url`, the modifier invokes the environment’s `openURL` action.
 
 struct TextLinkInteraction: ViewModifier {
   @Environment(\.openURL) private var openURL
 
+  let layoutBox: TextLayoutBox
+
   func body(content: Content) -> some View {
     #if TEXTUAL_ENABLE_LINKS
       content
-        .overlayPreferenceValue(Text.LayoutKey.self) { value in
-          if let anchoredLayout = value.first {
-            GeometryReader { geometry in
-              Color.clear
-                .contentShape(.rect)
-                .gesture(
-                  tap(
-                    origin: geometry[anchoredLayout.origin],
-                    layout: anchoredLayout.layout
-                  )
-                )
-            }
-          }
+        .overlay {
+          Color.clear
+            .contentShape(.rect)
+            .gesture(tap)
         }
     #else
       content
@@ -35,12 +27,15 @@ struct TextLinkInteraction: ViewModifier {
   }
 
   #if TEXTUAL_ENABLE_LINKS
-    private func tap(origin: CGPoint, layout: Text.Layout) -> some Gesture {
+    private var tap: some Gesture {
       SpatialTapGesture()
         .onEnded { value in
+          guard let layout = layoutBox.layout else {
+            return
+          }
           let localPoint = CGPoint(
-            x: value.location.x - origin.x,
-            y: value.location.y - origin.y
+            x: value.location.x - layoutBox.layoutOrigin.x,
+            y: value.location.y - layoutBox.layoutOrigin.y
           )
           let runs = layout.flatMap(\.self)
           let run = runs.first { run in

@@ -3,6 +3,7 @@ import SwiftUI
 extension StructuredText {
   struct TableCell: View {
     @Environment(\.tableCellStyle) private var tableCellStyle
+    @State private var bounds: CGRect?
 
     private let content: AttributedSubstring
     private let identifier: TableCell.Identifier
@@ -22,9 +23,11 @@ extension StructuredText {
       let resolvedStyle =
         tableCellStyle
         .resolve(configuration: configuration)
-        .anchorPreference(key: BoundsKey.self, value: .bounds) { anchor in
-          [identifier: anchor]
+        // Measured in the table's coordinate space, so scrolling the table does not change it
+        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .textTable) }) {
+          bounds = $0
         }
+        .preference(key: BoundsKey.self, value: bounds.map { [identifier: $0] } ?? [:])
 
       AnyView(resolvedStyle)
     }
@@ -48,14 +51,20 @@ extension StructuredText.TableCell {
   }
 
   struct BoundsKey: PreferenceKey {
-    static let defaultValue: [Identifier: Anchor<CGRect>] = [:]
+    static let defaultValue: [Identifier: CGRect] = [:]
 
     static func reduce(
-      value: inout [Identifier: Anchor<CGRect>],
-      nextValue: () -> [Identifier: Anchor<CGRect>]
+      value: inout [Identifier: CGRect],
+      nextValue: () -> [Identifier: CGRect]
     ) {
       value.merge(nextValue(), uniquingKeysWith: { $1 })
     }
+  }
+}
+
+extension CoordinateSpaceProtocol where Self == NamedCoordinateSpace {
+  static var textTable: NamedCoordinateSpace {
+    .named("textTable")
   }
 }
 

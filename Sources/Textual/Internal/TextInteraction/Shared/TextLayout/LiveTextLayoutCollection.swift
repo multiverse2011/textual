@@ -1,42 +1,39 @@
 #if TEXTUAL_ENABLE_TEXT_SELECTION
   import SwiftUI
 
+  // A snapshot of the fragments' layouts and their origins in the selection scope.
   final class LiveTextLayoutCollection: TextLayoutCollection {
     private(set) lazy var layouts: [any TextLayout] = makeLayouts()
 
-    private let base: Text.LayoutKey.Value
-    private let geometry: GeometryProxy
+    private let base: [Text.Layout]
+    private let origins: [CGPoint]
 
-    init(base: Text.LayoutKey.Value, geometry: GeometryProxy) {
-      self.base = base
-      self.geometry = geometry
+    @MainActor
+    init(boxes: [TextLayoutBox]) {
+      // Fragments that have not been drawn yet have no layout
+      let boxes = boxes.filter { $0.layout != nil }
+      self.base = boxes.compactMap(\.layout)
+      self.origins = boxes.map { box in
+        CGPoint(x: box.origin.x + box.layoutOrigin.x, y: box.origin.y + box.layoutOrigin.y)
+      }
     }
 
     func isEqual(to other: any TextLayoutCollection) -> Bool {
-      base == (other as? LiveTextLayoutCollection)?.base
+      guard let other = other as? LiveTextLayoutCollection else { return false }
+      return base == other.base && origins == other.origins
     }
 
     func needsPositionReconciliation(with other: any TextLayoutCollection) -> Bool {
       // Same layouts with different origins do not need position reconciliation
-      base.map(\.layout) != (other as? LiveTextLayoutCollection)?.base.map(\.layout)
+      base != (other as? LiveTextLayoutCollection)?.base
     }
 
     func index(of layout: Text.Layout) -> Int? {
-      layouts.firstIndex { textLayout in
-        (textLayout as? LiveTextLayout)?.base == layout
-      }
+      base.firstIndex(of: layout)
     }
 
     private func makeLayouts() -> [any TextLayout] {
-      base
-        // We are only interested in text fragments
-        .filter(\.layout.isTextFragment)
-        .map { anchoredLayout in
-          LiveTextLayout(
-            anchoredLayout: anchoredLayout,
-            geometry: geometry
-          )
-        }
+      zip(base, origins).map(LiveTextLayout.init)
     }
   }
 
@@ -54,16 +51,6 @@
 
     private lazy var contents = base.materializeContents()
     private lazy var joinedAttributedString = contents.attributedStrings.joined()
-
-    convenience init(
-      anchoredLayout: Text.LayoutKey.AnchoredLayout,
-      geometry: GeometryProxy
-    ) {
-      self.init(
-        base: anchoredLayout.layout,
-        origin: geometry[anchoredLayout.origin]
-      )
-    }
 
     init(base: Text.Layout, origin: CGPoint) {
       self.base = base

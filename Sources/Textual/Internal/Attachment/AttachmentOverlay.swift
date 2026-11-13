@@ -4,29 +4,28 @@ import SwiftUI
 //
 // `AttachmentOverlay` renders attachment views using resolved `Text.Layout` geometry.
 //
-// It’s applied at the text fragment level. The fragment exposes the resolved layout through the
-// `Text.LayoutKey` preference; this modifier reads the anchored layout, converts its anchor to a
-// concrete origin using `GeometryReader`, and installs an `AttachmentView` that draws attachments
-// at their run bounds.
+// It’s applied at the text fragment level. The fragment's layout is captured into a
+// `TextLayoutBox`; this modifier installs an `AttachmentView` that draws attachments at their run
+// bounds. Fragments without attachments get no overlay.
 
 struct AttachmentOverlay: ViewModifier {
   private let attachments: Set<AnyAttachment>
+  private let layoutBox: TextLayoutBox
 
-  init(attachments: Set<AnyAttachment>) {
+  init(attachments: Set<AnyAttachment>, layoutBox: TextLayoutBox) {
     self.attachments = attachments
+    self.layoutBox = layoutBox
   }
 
   func body(content: Content) -> some View {
     content
-      .overlayPreferenceValue(Text.LayoutKey.self) { value in
-        if let anchoredLayout = value.first {
-          GeometryReader { geometry in
-            AttachmentView(
-              attachments: attachments,
-              origin: geometry[anchoredLayout.origin],
-              layout: anchoredLayout.layout
-            )
-          }
+      .overlay {
+        if !attachments.isEmpty, let layout = layoutBox.layout {
+          AttachmentView(
+            attachments: attachments,
+            origin: layoutBox.layoutOrigin,
+            layout: layout
+          )
         }
       }
   }

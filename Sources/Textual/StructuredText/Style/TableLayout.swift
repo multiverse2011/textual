@@ -35,10 +35,6 @@ extension StructuredText {
     private let rows: [Row]
     private let columns: [Column]
 
-    init(_ cellBounds: [TableCell.Identifier: Anchor<CGRect>], geometry: GeometryProxy) {
-      self.init(cellBounds.mapValues { geometry[$0] })
-    }
-
     init(_ cellBounds: [TableCell.Identifier: CGRect] = [:]) {
       let rowCount = Set(cellBounds.keys.map(\.row)).count
       let columnCount = Set(cellBounds.keys.map(\.column)).count

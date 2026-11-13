@@ -92,12 +92,12 @@ extension TextualNamespace where Base: View {
   public func tableBackground(
     @ViewBuilder content: @escaping (_ layout: StructuredText.TableLayout) -> some View
   ) -> some View {
-    base.backgroundPreferenceValue(StructuredText.TableCell.BoundsKey.self) { values in
-      GeometryReader { geometry in
-        content(.init(values, geometry: geometry))
+    base
+      .coordinateSpace(.textTable)
+      .backgroundPreferenceValue(StructuredText.TableCell.BoundsKey.self) { values in
+        content(.init(values))
+          .allowsHitTesting(false)
       }
-      .allowsHitTesting(false)
-    }
   }
 
   /// Adds an overlay that can align with table cell bounds.
@@ -107,12 +107,12 @@ extension TextualNamespace where Base: View {
   public func tableOverlay(
     @ViewBuilder content: @escaping (_ layout: StructuredText.TableLayout) -> some View
   ) -> some View {
-    base.overlayPreferenceValue(StructuredText.TableCell.BoundsKey.self) { values in
-      GeometryReader { geometry in
-        content(.init(values, geometry: geometry))
+    base
+      .coordinateSpace(.textTable)
+      .overlayPreferenceValue(StructuredText.TableCell.BoundsKey.self) { values in
+        content(.init(values))
+          .allowsHitTesting(false)
       }
-      .allowsHitTesting(false)
-    }
   }
 
   /// Sets the spacing used between list items in ``StructuredText``.
